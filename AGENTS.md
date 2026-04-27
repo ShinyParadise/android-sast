@@ -16,7 +16,9 @@
 - Установка debug-сборки на устройство: `./gradlew :app:installDebug`.
 - Ручной запуск приложения: `adb shell am start -n dev.shinyparadise.sast/dev.shinyparadise.sast.ui.MainActivity`.
 - Логи только по приложению: `adb logcat --pid $(adb shell pidof -s dev.shinyparadise.sast)`.
-- Если на устройстве есть Android CLI, использовать его для device-only проверок (permissions/files/logs), а сборку/тесты оставлять через `./gradlew`.
+- Android CLI: использовать `android` для device-only проверок (screenshot, layout, screen capture), а сборку/тесты через `./gradlew`.
+- Локальные скиллы: `.opencode/skills/android-cli/`.
+- Глобальные скиллы: `~/.config/opencode/skills/`.
 
 ## Don't break
 - Не убирать копирование `content://` в файл в `AnalyzerInteractor.getUri(...)` — это путь для SAF URI.
