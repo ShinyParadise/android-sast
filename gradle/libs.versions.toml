@@ -18,6 +18,9 @@ nav3Core = "1.1.0"
 lifecycleViewmodelNav3 = "1.0.0"
 smali = "2.5.2"
 navigation3Runtime = "1.1.1"
+retrofit = "2.11.0"
+gsonVersion = "2.11.0"
+datastore = "1.1.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -51,9 +54,12 @@ smali = { module = "org.smali:smali", version.ref = "smali" }
 xmlutil-core-android = { module = "io.github.pdvrieze.xmlutil:core-android", version.ref = "coreAndroidVersion" }
 navigation3-runtime = { group = "androidx.navigation3", name = "navigation3-runtime", version.ref = "navigation3Runtime" }
 androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gsonVersion" }
+retrofit-gson-converter = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-
