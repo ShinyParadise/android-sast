@@ -5,16 +5,20 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.shinyparadise.sast.ui.theme.SASTTheme
 
@@ -35,25 +39,47 @@ private fun MainScreenContent(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center,
         ) {
-            CircularProgressIndicator()
-        }
-    }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                CircularProgressIndicator()
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        uiState.chosenApkName?.let {
-            Text(it)
-            Spacer(Modifier.padding(vertical = 5.dp))
-        }
+                Text(
+                    text = uiState.loadingStage,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
 
-        Button(
-            onClick = { onEvent(MainUiEvent.OnChooseClicked) },
-            enabled = !uiState.isLoading,
+                if (uiState.loadingProgress > 0) {
+                    LinearProgressIndicator(
+                        progress = { uiState.loadingProgress },
+                        modifier = Modifier.padding(horizontal = 32.dp)
+                    )
+                    Text(
+                        text = "${(uiState.loadingProgress * 100).toInt()}%",
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+    } else {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Choose apk")
+            uiState.chosenApkName?.let {
+                Text(it)
+                Spacer(Modifier.padding(vertical = 5.dp))
+            }
+
+            Button(
+                onClick = { onEvent(MainUiEvent.OnChooseClicked) },
+                enabled = !uiState.isLoading,
+            ) {
+                Text("Choose apk")
+            }
         }
     }
 }

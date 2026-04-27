@@ -11,12 +11,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.rememberSerializable
-import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
@@ -80,13 +76,10 @@ class MainActivity : ComponentActivity() {
             backStack = rememberNavBackStack(Routes.Main)
 
             SASTTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MainNavGraph(
-                        modifier = Modifier.padding(innerPadding),
-                        viewModel = viewModel,
-                        backStack = backStack,
-                    )
-                }
+                MainNavGraph(
+                    viewModel = viewModel,
+                    backStack = backStack,
+                )
             }
         }
     }

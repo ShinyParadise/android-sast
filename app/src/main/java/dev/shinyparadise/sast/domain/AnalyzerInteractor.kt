@@ -86,9 +86,7 @@ class AnalyzerInteractor(
     }
 
     private fun countSmaliFiles(dir: File): Int {
-        return dir.walkTopDown()
-            .filter { it.isFile && it.extension == "smali" }
-            .count()
+        return dir.walkTopDown().count { it.isFile && it.extension == "smali" }
     }
 
     fun getUri(uri: Uri): Uri {
@@ -102,15 +100,17 @@ class AnalyzerInteractor(
                 ".$extensionFile",
                 context.cacheDir
             )
-            val input = cr.openInputStream(uri)
-            file.outputStream().use { stream ->
-                input?.copyTo(stream)
+            cr.openInputStream(uri)?.use { input ->
+                file.outputStream().use { stream ->
+                    input.copyTo(stream)
+                }
             }
-            input?.close()
             resultURI = Uri.fromFile(file)
         }
         return resultURI
     }
+
+    fun getContext(): Context = context
 
     suspend fun cleanup() {
         decompiler.cleanup()

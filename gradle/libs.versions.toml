@@ -17,6 +17,7 @@ navigationCompose = "2.9.8"
 nav3Core = "1.1.0"
 lifecycleViewmodelNav3 = "1.0.0"
 smali = "2.5.2"
+navigation3Runtime = "1.1.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -48,6 +49,8 @@ koin-ksp-compiler = { module = "io.insert-koin:koin-ksp-compiler", version.ref =
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 smali = { module = "org.smali:smali", version.ref = "smali" }
 xmlutil-core-android = { module = "io.github.pdvrieze.xmlutil:core-android", version.ref = "coreAndroidVersion" }
+navigation3-runtime = { group = "androidx.navigation3", name = "navigation3-runtime", version.ref = "navigation3Runtime" }
+androidx-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
