@@ -1,11 +1,14 @@
 package dev.shinyparadise.sast.ui.screens.main
 
+import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.shinyparadise.sast.domain.AnalysisReport
 import dev.shinyparadise.sast.domain.AnalyzerInteractor
+import dev.shinyparadise.sast.domain.ReportGenerator
+import dev.shinyparadise.sast.domain.ReportResult
 import dev.shinyparadise.sast.utils.log
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,11 +25,19 @@ data class MainUiState(
     val loadingStage: String = "",
     val loadingProgress: Float = 0f,
     val report: AnalysisReport? = null,
+    val exportResult: ExportResult? = null,
+)
+
+data class ExportResult(
+    val format: ExportFormat,
+    val success: Boolean,
 )
 
 sealed interface MainUiEvent {
     data class OnApkChosen(val uri: Uri?) : MainUiEvent
     data object OnChooseClicked : MainUiEvent
+    data class ExportReport(val format: ExportFormat) : MainUiEvent
+    data object OnExportResultShown : MainUiEvent
 }
 
 sealed interface MainUiEffect {
@@ -34,8 +45,13 @@ sealed interface MainUiEffect {
     data object NavigateToDetails : MainUiEffect
 }
 
+enum class ExportFormat {
+    TXT, CSV, PDF
+}
+
 class MainViewModel(
     private val interactor: AnalyzerInteractor,
+    private val reportGenerator: ReportGenerator,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
@@ -105,6 +121,8 @@ class MainViewModel(
         when (event) {
             is MainUiEvent.OnApkChosen -> onApkChosen(event)
             MainUiEvent.OnChooseClicked -> uiEffects.trySend(MainUiEffect.OpenFilePicker)
+            is MainUiEvent.ExportReport -> exportReport(event.format)
+            MainUiEvent.OnExportResultShown -> _uiState.update { it.copy(exportResult = null) }
         }
     }
 
@@ -124,10 +142,44 @@ class MainViewModel(
         }
     }
 
+    private fun exportReport(format: ExportFormat) {
+        viewModelScope.launch {
+            val report = uiState.value.report ?: return@launch
+            val result = when (format) {
+                ExportFormat.TXT -> {
+                    val contentResult = reportGenerator.generateTextReport(report)
+                    if (contentResult is ReportResult.Success) {
+                        reportGenerator.saveToFile(getContext(), "sast_report_${System.currentTimeMillis()}.txt", contentResult.data as String)
+                    } else {
+                        contentResult
+                    }
+                }
+                ExportFormat.CSV -> {
+                    val contentResult = reportGenerator.generateCsvReport(report)
+                    if (contentResult is ReportResult.Success) {
+                        reportGenerator.saveToFile(getContext(), "sast_report_${System.currentTimeMillis()}.csv", contentResult.data as String)
+                    } else {
+                        contentResult
+                    }
+                }
+                ExportFormat.PDF -> {
+                    val contentResult = reportGenerator.generatePdfReport(report)
+                    if (contentResult is ReportResult.Success) {
+                        reportGenerator.savePdfToFile(getContext(), "sast_report_${System.currentTimeMillis()}.pdf", contentResult.data as ByteArray)
+                    } else {
+                        contentResult
+                    }
+                }
+            }
+            val success = result is ReportResult.Success
+            _uiState.update { it.copy(exportResult = ExportResult(format, success)) }
+        }
+    }
+
     private fun getOriginalFileName(uri: Uri): String? {
         return try {
             if (uri.scheme == "content") {
-                val cursor = interactor.getContext().contentResolver.query(
+                val cursor = getContext().contentResolver.query(
                     uri,
                     arrayOf(OpenableColumns.DISPLAY_NAME),
                     null,
@@ -146,4 +198,6 @@ class MainViewModel(
             null
         }
     }
+
+    private fun getContext(): Context = interactor.getContext()
 }

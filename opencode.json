@@ -1,3 +1,4 @@
 {
-  "instructions": "Read AGENTS.md in project root for project-specific guidance."
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["Read AGENTS.md in project root for project-specific guidance."]
 }
