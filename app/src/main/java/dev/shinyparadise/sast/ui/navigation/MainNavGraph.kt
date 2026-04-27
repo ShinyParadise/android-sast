@@ -3,10 +3,10 @@ package dev.shinyparadise.sast.ui.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.ui.NavDisplay
 import dev.shinyparadise.sast.ui.screens.details.DetailsScreen
 import dev.shinyparadise.sast.ui.screens.main.MainScreen
 import dev.shinyparadise.sast.ui.screens.main.MainViewModel
@@ -15,20 +15,21 @@ import dev.shinyparadise.sast.ui.screens.main.MainViewModel
 fun MainNavGraph(
     viewModel: MainViewModel,
     modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController(),
+    backStack: NavBackStack<Routes>,
 ) {
     Box(modifier = modifier) {
-        NavHost(
-            navController = navController,
-            startDestination = Routes.Main,
-        ) {
-            composable<Routes.Main> {
-                MainScreen(viewModel)
-            }
+        NavDisplay(
+            backStack = backStack,
+            onBack = { backStack.removeLastOrNull() },
+            entryProvider = entryProvider {
+                entry<Routes.Main> {
+                    MainScreen(viewModel)
+                }
 
-            composable<Routes.Details> {
-                DetailsScreen(viewModel)
+                entry<Routes.Details> {
+                    DetailsScreen(viewModel)
+                }
             }
-        }
+        )
     }
 }

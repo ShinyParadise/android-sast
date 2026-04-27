@@ -14,12 +14,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSerializable
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.serialization.NavBackStackSerializer
+import androidx.navigation3.runtime.serialization.NavKeySerializer
 import dev.shinyparadise.sast.BuildConfig
 import dev.shinyparadise.sast.ui.navigation.MainNavGraph
 import dev.shinyparadise.sast.ui.navigation.Routes
@@ -32,11 +36,20 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import org.koin.android.ext.android.inject
 
+@Composable
+private fun <T : NavKey> rememberNavBackStack(vararg elements: T): NavBackStack<T> {
+    return rememberSerializable(
+        serializer = NavBackStackSerializer(elementSerializer = NavKeySerializer())
+    ) {
+        NavBackStack(*elements)
+    }
+}
+
 class MainActivity : ComponentActivity() {
 
-    lateinit var navController: NavHostController
-
     private val viewModel by inject<MainViewModel>()
+
+    private lateinit var backStack: NavBackStack<Routes>
 
     private val registerForOpenFileResult = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
@@ -64,14 +77,14 @@ class MainActivity : ComponentActivity() {
         requestStoragePermission()
 
         setContent {
-            navController = rememberNavController()
+            backStack = rememberNavBackStack(Routes.Main)
 
             SASTTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     MainNavGraph(
                         modifier = Modifier.padding(innerPadding),
                         viewModel = viewModel,
-                        navController = navController,
+                        backStack = backStack,
                     )
                 }
             }
@@ -109,7 +122,7 @@ class MainActivity : ComponentActivity() {
     private fun handleEffects(effect: MainUiEffect) {
         when (effect) {
             is MainUiEffect.OpenFilePicker -> registerForOpenFileResult.launch(arrayOf("*/*"))
-            MainUiEffect.NavigateToDetails -> navController.navigate(Routes.Details)
+            MainUiEffect.NavigateToDetails -> backStack.add(Routes.Details)
         }
     }
 }

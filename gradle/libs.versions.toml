@@ -14,11 +14,17 @@ lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.13.0"
 composeBom = "2026.04.01"
 navigationCompose = "2.9.8"
+nav3Core = "1.1.0"
+lifecycleViewmodelNav3 = "1.0.0"
 smali = "2.5.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "nav3Core" }
+androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "nav3Core" }
+androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "lifecycleViewmodelNav3" }
+kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinxSerializationJson" }
 baksmali = { module = "org.smali:baksmali", version.ref = "smali" }
 dexlib2 = { module = "org.smali:dexlib2", version.ref = "smali" }
 jadx-core = { module = "io.github.skylot:jadx-core", version.ref = "jadxCore" }
