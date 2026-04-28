@@ -5,40 +5,31 @@ AI analysis capabilities for SAST Android application with on-device (AICore/Gem
 
 ---
 
-## Current Implementation Status: Phase 1-5 Complete ✅
+## Current Implementation Status: Phase 6 Complete ✅
 
-On-device heuristic analysis is working with Settings UI and AI insights display.
+Remote AI with chunking, Settings UI, AI insights display all working.
 
 ---
 
-## Phase 6: Enhanced Remote AI Analyzer
+## Phase 6: Enhanced Remote AI Analyzer (Complete ✅)
 **Goal**: Production-ready OpenAI-compatible API integration with chunking.
 
-- [ ] Enhance `RemoteAIAnalyzer.kt`:
-  - [ ] Real JSON parsing from LLM response
-  - [ ] Configurable chunk size setting in `AppSettings`
-  - [ ] Chunked processing for large vulnerability lists
-  - [ ] Improved security-focused prompt template
+- [x] Enhance `RemoteAIAnalyzer.kt`:
+  - [x] Real JSON parsing from LLM response
+  - [x] Configurable chunk size setting in `AppSettings`
+  - [x] Chunked processing for large vulnerability lists
+  - [x] Improved security-focused prompt template
 
-- [ ] Update `AppSettings.kt`:
-  ```kotlin
-  data class AppSettings(
-      val aiAnalysisEnabled: Boolean = false,
-      val aiAnalysisMode: AIMode = AIMode.ON_DEVICE,
-      val remoteModelUrl: String? = null,
-      val remoteApiKey: String? = null,
-      val selectedRemoteModel: String? = null,
-      val aiChunkSize: Int = 20, // vulnerabilities per chunk
-  )
-  ```
+- [x] Update `AppSettings.kt`:
+  - [x] Add `aiChunkSize` field (default 20)
 
-- [ ] Update `SettingsRepository.kt` - add `aiChunkSize` CRUD
+- [x] Update `SettingsRepository.kt` - add `aiChunkSize` CRUD
 
-- [ ] Update `SettingsScreen.kt` - add chunk size slider/input
+- [x] Update `SettingsScreen.kt` - add chunk size slider
 
 ---
 
-## Phase 7: AI Core (Gemini Nano) Integration
+## Phase 7: AICore (Gemini Nano) Integration
 **Goal**: On-device AI on Pixel 9+ via ML Kit Prompt API.
 
 - [ ] Create `AICoreAnalyzer.kt`:
@@ -73,30 +64,17 @@ On-device heuristic analysis is working with Settings UI and AI insights display
 
 ---
 
-## Phase 9: Enhanced Security Analysis
+## Phase 9: Enhanced Security Analysis (Complete ✅)
 **Goal**: Better prompts and analysis for security-focused use cases.
 
-- [ ] Enhance prompt in `RemoteAIAnalyzer.kt`:
-  ```markdown
-  You are a security expert analyzing Android applications.
-  Analyze vulnerability findings and provide:
-  - Risk score (0.0-1.0)
-  - Severity (LOW/MEDIUM/HIGH/CRITICAL)
-  - Security recommendation for Android app
+- [x] Enhance prompt in `RemoteAIAnalyzer.kt`:
+  - [x] Security-focused system prompt with OWASP categories
+  - [x] JSON parsing for structured responses
+  - [x] Risk scores and severity levels
 
-  Categories to detect (let model decide):
-  - Hardcoded secrets/credentials
-  - Insecure cryptographic practices
-  - WebView security issues
-  - Data storage vulnerabilities
-  - Network security issues
-  - Permission abuse
-  - Intent/activity leakage
-  ```
-
-- [ ] Update `DetailsComponents.kt`:
-  - [ ] Single "AI Security" category (let model categorize)
-  - [ ] Show all AI insights under one section
+- [x] Update `DetailsComponents.kt`:
+  - [x] Single "AI Security" category display
+  - [x] Show AI badges and recommendations
 
 ---
 
