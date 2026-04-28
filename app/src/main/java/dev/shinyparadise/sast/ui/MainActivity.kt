@@ -114,8 +114,9 @@ class MainActivity : ComponentActivity() {
 
     private fun handleEffects(effect: MainUiEffect) {
         when (effect) {
-                is MainUiEffect.OpenFilePicker -> registerForOpenFileResult.launch(arrayOf("*/*"))
-                MainUiEffect.NavigateToDetails -> backStack.add(Routes.Details)
+            is MainUiEffect.OpenFilePicker -> registerForOpenFileResult.launch(arrayOf("*/*"))
+            MainUiEffect.NavigateToDetails -> backStack.add(Routes.Details)
+            MainUiEffect.NavigateBack -> backStack.removeLastOrNull()
         }
     }
 }

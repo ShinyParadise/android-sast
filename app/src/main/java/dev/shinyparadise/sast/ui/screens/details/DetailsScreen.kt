@@ -1,16 +1,16 @@
 package dev.shinyparadise.sast.ui.screens.details
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -18,16 +18,33 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.shinyparadise.sast.domain.Vulnerability
 import dev.shinyparadise.sast.ui.screens.main.MainUiEvent
 import dev.shinyparadise.sast.ui.screens.main.MainUiState
 import dev.shinyparadise.sast.ui.screens.main.MainViewModel
+
+sealed class DetailsItem {
+    abstract val key: String
+
+    data class CategoryHeader(
+        val category: VulnerabilityCategory,
+        val totalCount: Int,
+        val isExpanded: Boolean,
+        val onToggleExpand: () -> Unit
+    ) : DetailsItem() {
+        override val key: String get() = "header_${category.type}"
+    }
+
+    data class Vuln(val vuln: Vulnerability, val color: Color) : DetailsItem() {
+        override val key: String get() = "vuln_${vuln.file}_${vuln.line}"
+    }
+}
 
 @Composable
 fun DetailsScreen(
@@ -43,13 +60,11 @@ private fun DetailsScreenContent(
     uiState: MainUiState,
     onEvent: (MainUiEvent) -> Unit,
 ) {
-    var searchQuery by remember { mutableStateOf("") }
-    val expandedCategories = remember { mutableStateMapOf<String, Boolean>() }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.exportResult) {
         uiState.exportResult?.let { result ->
-                val message = if (result.success) {
+            val message = if (result.success) {
                 "${result.format.name} report saved"
             } else {
                 "Failed to save ${result.format.name}"
@@ -60,33 +75,30 @@ private fun DetailsScreenContent(
     }
 
     uiState.report?.let { report ->
-        val categories = remember(report, searchQuery) {
-            groupVulnerabilities(report).map { category ->
-                val filteredVulns = if (searchQuery.isEmpty()) {
-                    category.vulnerabilities
-                } else {
-                    category.vulnerabilities.filter {
-                        it.file.contains(searchQuery, ignoreCase = true) ||
-                        it.description.contains(searchQuery, ignoreCase = true)
-                    }
-                }
-                category.copy(vulnerabilities = filteredVulns, count = filteredVulns.size)
-            }.filter { it.count > 0 }
-        }
-
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
         ) {
-            item {
+            item(key = "header") {
                 Column(
                     modifier = Modifier
                         .statusBarsPadding()
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    Text(
-                        text = "Analysis Results",
-                        style = MaterialTheme.typography.titleLarge
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(onClick = { onEvent(MainUiEvent.NavigateBack) }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                        Text(
+                            text = "Analysis Results",
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
                     Text(
                         text = uiState.chosenApkPath ?: report.apkPath,
                         style = MaterialTheme.typography.bodySmall,
@@ -95,60 +107,49 @@ private fun DetailsScreenContent(
                 }
             }
 
-            item {
+            item(key = "search") {
                 SearchBar(
-                    query = searchQuery,
-                    onQueryChange = { searchQuery = it },
+                    query = uiState.searchQuery,
+                    onQueryChange = { onEvent(MainUiEvent.SetSearchQuery(it)) },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
 
-            item {
+            item(key = "statistics") {
                 StatisticsSection(
-                    categories = categories,
+                    categories = uiState.categories,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
 
-            item {
+            item(key = "export") {
                 ExportSection(
                     onEvent = onEvent,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
             }
 
-            item {
+            item(key = "snackbar") {
                 SnackbarHost(hostState = snackbarHostState)
             }
 
-            categories.forEach { category ->
-                item(key = "header_${category.type}") {
-                    CategoryHeader(
-                        category = category,
-                        totalCount = categories.sumOf { it.count },
-                        isExpanded = expandedCategories[category.type] ?: false,
-                        onToggleExpand = {
-                            expandedCategories[category.type] = !(expandedCategories[category.type] ?: false)
-                        },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                    )
-                }
-
-                item {
-                    AnimatedVisibility(
-                        visible = expandedCategories[category.type] == true,
-                        enter = fadeIn(animationSpec = tween(300)) + slideInVertically(animationSpec = tween(300)),
-                        exit = fadeOut(animationSpec = tween(300)) + slideOutVertically(animationSpec = tween(300))
-                    ) {
-                        Column {
-                            category.vulnerabilities.forEach { vuln ->
-                                VulnerabilityItem(
-                                    item = vuln,
-                                    color = category.color,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
+            items(uiState.detailsItems, key = { it.key }) { item ->
+                when (item) {
+                    is DetailsItem.CategoryHeader -> {
+                        CategoryHeader(
+                            category = item.category,
+                            totalCount = item.totalCount,
+                            isExpanded = item.isExpanded,
+                            onToggleExpand = item.onToggleExpand,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                        )
+                    }
+                    is DetailsItem.Vuln -> {
+                        VulnerabilityItem(
+                            item = item.vuln,
+                            color = item.color,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
+                        )
                     }
                 }
             }

@@ -3,12 +3,17 @@ package dev.shinyparadise.sast.ui.screens.main
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.shinyparadise.sast.domain.AnalysisReport
 import dev.shinyparadise.sast.domain.AnalyzerInteractor
 import dev.shinyparadise.sast.domain.ReportGenerator
 import dev.shinyparadise.sast.domain.ReportResult
+import dev.shinyparadise.sast.domain.Vulnerability
+import dev.shinyparadise.sast.ui.screens.details.DetailsItem
+import dev.shinyparadise.sast.ui.screens.details.VulnerabilityCategory
+import dev.shinyparadise.sast.ui.screens.details.groupVulnerabilities
 import dev.shinyparadise.sast.utils.log
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +31,11 @@ data class MainUiState(
     val loadingProgress: Float = 0f,
     val report: AnalysisReport? = null,
     val exportResult: ExportResult? = null,
+    val expandedCategories: Set<String> = emptySet(),
+    val searchQuery: String = "",
+    val categories: List<VulnerabilityCategory> = emptyList(),
+    val totalCount: Int = 0,
+    val detailsItems: List<DetailsItem> = emptyList(),
 )
 
 data class ExportResult(
@@ -38,11 +48,15 @@ sealed interface MainUiEvent {
     data object OnChooseClicked : MainUiEvent
     data class ExportReport(val format: ExportFormat) : MainUiEvent
     data object OnExportResultShown : MainUiEvent
+    data class ToggleCategory(val categoryType: String) : MainUiEvent
+    data class SetSearchQuery(val query: String) : MainUiEvent
+    data object NavigateBack : MainUiEvent
 }
 
 sealed interface MainUiEffect {
     data object OpenFilePicker : MainUiEffect
     data object NavigateToDetails : MainUiEffect
+    data object NavigateBack : MainUiEffect
 }
 
 enum class ExportFormat {
@@ -99,6 +113,7 @@ class MainViewModel(
                         report = state.report
                     )
                 }
+                recalculateDetailsItems()
                 uiEffects.trySend(MainUiEffect.NavigateToDetails)
             }
 
@@ -123,7 +138,53 @@ class MainViewModel(
             MainUiEvent.OnChooseClicked -> uiEffects.trySend(MainUiEffect.OpenFilePicker)
             is MainUiEvent.ExportReport -> exportReport(event.format)
             MainUiEvent.OnExportResultShown -> _uiState.update { it.copy(exportResult = null) }
+            is MainUiEvent.ToggleCategory -> _uiState.update { state ->
+                val newExpanded = if (event.categoryType in state.expandedCategories) {
+                    state.expandedCategories - event.categoryType
+                } else {
+                    state.expandedCategories + event.categoryType
+                }
+                state.copy(expandedCategories = newExpanded)
+            }.also { recalculateDetailsItems() }
+            is MainUiEvent.SetSearchQuery -> _uiState.update { it.copy(searchQuery = event.query) }.also { recalculateDetailsItems() }
+            MainUiEvent.NavigateBack -> uiEffects.trySend(MainUiEffect.NavigateBack)
         }
+    }
+
+    private fun recalculateDetailsItems() {
+        val report = _uiState.value.report ?: return
+        val state = _uiState.value
+        val categories = groupVulnerabilities(report).map { category ->
+            val filteredVulns = if (state.searchQuery.isEmpty()) {
+                category.vulnerabilities
+            } else {
+                category.vulnerabilities.filter {
+                    it.file.contains(state.searchQuery, ignoreCase = true) ||
+                    it.description.contains(state.searchQuery, ignoreCase = true)
+                }
+            }
+            category.copy(vulnerabilities = filteredVulns, count = filteredVulns.size)
+        }.filter { it.count > 0 }
+
+        val totalCount = categories.sumOf { it.count }
+
+        val detailsItems = buildList {
+            categories.forEach { category ->
+                add(DetailsItem.CategoryHeader(
+                    category = category,
+                    totalCount = totalCount,
+                    isExpanded = category.type in state.expandedCategories,
+                    onToggleExpand = { onEvent(MainUiEvent.ToggleCategory(category.type)) }
+                ))
+                if (category.type in state.expandedCategories) {
+                    category.vulnerabilities.forEach { vuln ->
+                        add(DetailsItem.Vuln(vuln = vuln, color = category.color))
+                    }
+                }
+            }
+        }
+
+        _uiState.update { it.copy(categories = categories, totalCount = totalCount, detailsItems = detailsItems) }
     }
 
     private fun onApkChosen(event: MainUiEvent.OnApkChosen) {
