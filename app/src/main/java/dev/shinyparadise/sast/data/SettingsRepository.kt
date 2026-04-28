@@ -25,6 +25,7 @@ class SettingsRepository(private val context: Context) {
             remoteModelUrl = preferences[SettingsKeys.REMOTE_MODEL_URL],
             remoteApiKey = preferences[SettingsKeys.REMOTE_API_KEY],
             selectedRemoteModel = preferences[SettingsKeys.SELECTED_REMOTE_MODEL],
+            aiChunkSize = preferences[SettingsKeys.AI_CHUNK_SIZE] ?: 20,
         )
     }
 
@@ -32,6 +33,7 @@ class SettingsRepository(private val context: Context) {
         dataStore.edit { preferences ->
             preferences[SettingsKeys.AI_ANALYSIS_ENABLED] = settings.aiAnalysisEnabled
             preferences[SettingsKeys.AI_ANALYSIS_MODE] = settings.aiAnalysisMode.name
+            preferences[SettingsKeys.AI_CHUNK_SIZE] = settings.aiChunkSize
             settings.remoteModelUrl?.let {
                 preferences[SettingsKeys.REMOTE_MODEL_URL] = it
             } ?: preferences.remove(SettingsKeys.REMOTE_MODEL_URL)

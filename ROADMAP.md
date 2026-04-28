@@ -1,13 +1,26 @@
 # Roadmap: AI-powered Vulnerability Analysis
 
 ## Overview
-Add AI analysis capabilities to the existing SAST Android application. The feature includes on-device heuristic analysis (for VCR) and remote model integration.
+AI analysis capabilities for SAST Android application with on-device (AICore/Gemini Nano) and remote (OpenAI-compatible) inference.
 
-## Phase 1: Settings Storage (DataStore)
-**Goal**: Persistent app settings storage.
+---
 
-- [ ] Add DataStore Preferences dependency (`androidx.datastore:datastore-preferences`)
-- [ ] Create `domain/AppSettings.kt`:
+## Current Implementation Status: Phase 1-5 Complete ✅
+
+On-device heuristic analysis is working with Settings UI and AI insights display.
+
+---
+
+## Phase 6: Enhanced Remote AI Analyzer
+**Goal**: Production-ready OpenAI-compatible API integration with chunking.
+
+- [ ] Enhance `RemoteAIAnalyzer.kt`:
+  - [ ] Real JSON parsing from LLM response
+  - [ ] Configurable chunk size setting in `AppSettings`
+  - [ ] Chunked processing for large vulnerability lists
+  - [ ] Improved security-focused prompt template
+
+- [ ] Update `AppSettings.kt`:
   ```kotlin
   data class AppSettings(
       val aiAnalysisEnabled: Boolean = false,
@@ -15,135 +28,99 @@ Add AI analysis capabilities to the existing SAST Android application. The featu
       val remoteModelUrl: String? = null,
       val remoteApiKey: String? = null,
       val selectedRemoteModel: String? = null,
-  )
-  
-  enum class AIMode { ON_DEVICE, REMOTE }
-  ```
-- [ ] Create `data/SettingsRepository.kt` with DataStore CRUD operations
-- [ ] Register in Koin (`AppModule.kt`): `single { SettingsRepository(androidContext()) }`
-
----
-
-## Phase 2: AI Analysis Domain Layer
-**Goal**: Abstract AI analysis with pluggable implementations.
-
-- [ ] Create `domain/VulnerabilityWithAIInsight.kt`:
-  ```kotlin
-  data class VulnerabilityWithAIInsight(
-      val originalVulnerability: Vulnerability,
-      val aiRiskScore: Float?, // 0.0..1.0
-      val aiSeverity: String?, // "LOW", "MEDIUM", "HIGH", "CRITICAL"
-      val aiRecommendation: String?,
+      val aiChunkSize: Int = 20, // vulnerabilities per chunk
   )
   ```
 
-- [ ] Create `domain/VulnerabilityAIAnalyzer.kt` interface:
-  ```kotlin
-  interface VulnerabilityAIAnalyzer {
-      suspend fun analyzeVulnerabilities(
-          vulnerabilities: List<Vulnerability>
-      ): Result<List<VulnerabilityWithAIInsight>>
-  }
-  ```
+- [ ] Update `SettingsRepository.kt` - add `aiChunkSize` CRUD
 
-- [ ] Implement `domain/OnDeviceAIAnalyzer.kt` (heuristic-based):
-  - `HARDCODED_SECRET` → risk 0.9, recommendation "Use Android Keystore"
-  - `INSECURE_CRYPTO` → risk 0.8, "Migrate to AES-GCM"
-  - Others → risk 0.5, generic recommendation
-
-- [ ] Implement `domain/RemoteAIAnalyzer.kt`:
-  - Add Retrofit dependency
-  - HTTP client for remote API calls (OpenAI-compatible endpoint)
-  - Request/Response DTOs for vulnerability analysis
+- [ ] Update `SettingsScreen.kt` - add chunk size slider/input
 
 ---
 
-## Phase 3: Settings Screen
-**Goal**: UI for managing AI analysis settings.
+## Phase 7: AI Core (Gemini Nano) Integration
+**Goal**: On-device AI on Pixel 9+ via ML Kit Prompt API.
 
-- [ ] Add to `navigation/Destination.kt`:
-  ```kotlin
-  @Serializable data object Settings : Routes
-  ```
+- [ ] Create `AICoreAnalyzer.kt`:
+  - [ ] ML Kit Prompt API wrapper
+  - [ ] Device capability detection
+  - [ ] Fallback to remote if AICore unavailable
 
-- [ ] Create `ui/screens/settings/`:
-  - `SettingsScreen.kt` - Compose UI
-  - `SettingsViewModel.kt` - settings logic (inject `SettingsRepository`)
-  - `SettingsComponents.kt` - reusable UI components
+- [ ] Create `DeviceCapabilities.kt`:
+  - [ ] Check AICore availability
+  - [ ] Detect device model (Pixel 9+, Samsung S24+)
+  - [ ] NPU/GPU availability
 
-- [ ] Add entry in `MainNavGraph.kt` for Settings route
-
-- [ ] Add settings icon (gear) to `MainScreen` and `DetailsScreen` top bars
-
-- [ ] Register in Koin: `viewModel { SettingsViewModel(get()) }`
+- [ ] Update `AppModule.kt`:
+  - [ ] AICore analyzer provider
+  - [ ] Fallback chain: AICore → Remote → Heuristic
 
 ---
 
-## Phase 4: Integration with Analysis Flow
-**Goal**: Trigger AI analysis automatically after successful APK analysis.
+## Phase 8: Device Warning UI
+**Goal**: Inform users when on-device AI is unavailable.
 
-- [ ] Extend `AnalysisReport.kt`:
-  ```kotlin
-  data class AnalysisReport(
-      val apkPath: String,
-      val vulnerabilities: List<Vulnerability>,
-      val summary: String,
-      val aiInsights: List<VulnerabilityWithAIInsight>? = null,
-  )
+- [ ] Update `SettingsScreen.kt`:
+  - [ ] Show warning banner for unsupported devices
+  - [ ] Provide "Switch to Remote AI" button
+  - [ ] Link to Remote AI settings
+
+- [ ] Update warning text:
   ```
-
-- [ ] Modify `AnalyzerInteractor.kt`:
-  - Inject `VulnerabilityAIAnalyzer` and `SettingsRepository`
-  - After Smali analysis completes, check if AI enabled in settings
-  - If enabled, run AI analysis and update report
-  - Emit new state: `AnalysisState.Completed(report)` with AI insights
-
-- [ ] Update `MainViewModel.kt` to pass new dependencies
+  "Your device doesn't support on-device AI (Pixel 9+ required).
+   Switch to Remote AI for AI-powered analysis."
+  ```
 
 ---
 
-## Phase 5: UI for AI Results
-**Goal**: Display AI insights in the details screen.
+## Phase 9: Enhanced Security Analysis
+**Goal**: Better prompts and analysis for security-focused use cases.
 
-- [ ] Modify `DetailsScreen.kt` / `DetailsComponents.kt`:
-  - Show AI risk score indicator (color-coded)
-  - Display AI recommendations per vulnerability
-  - Add "AI Analysis" section in Statistics
-  - Show AI badge/icon for vulnerabilities with insights
+- [ ] Enhance prompt in `RemoteAIAnalyzer.kt`:
+  ```markdown
+  You are a security expert analyzing Android applications.
+  Analyze vulnerability findings and provide:
+  - Risk score (0.0-1.0)
+  - Severity (LOW/MEDIUM/HIGH/CRITICAL)
+  - Security recommendation for Android app
+
+  Categories to detect (let model decide):
+  - Hardcoded secrets/credentials
+  - Insecure cryptographic practices
+  - WebView security issues
+  - Data storage vulnerabilities
+  - Network security issues
+  - Permission abuse
+  - Intent/activity leakage
+  ```
+
+- [ ] Update `DetailsComponents.kt`:
+  - [ ] Single "AI Security" category (let model categorize)
+  - [ ] Show all AI insights under one section
 
 ---
 
-## Phase 6: Dependency Injection
-**Goal**: Wire everything with Koin.
+## Notes
 
-- [ ] Update `di/AppModule.kt`:
-  ```kotlin
-  viewModel { SettingsViewModel(get()) }
-  
-  single<VulnerabilityAIAnalyzer> {
-      val settings = get<SettingsRepository>().getSettings()
-      if (settings.aiAnalysisMode == AIMode.REMOTE) {
-          RemoteAIAnalyzer(get())
-      } else {
-          OnDeviceAIAnalyzer()
-      }
-  }
-  
-  single { SettingsRepository(androidContext()) }
-  ```
+### Supported Devices
+- **On-device AI**: Pixel 9+, Samsung S24+ (with AICore/NPU)
+- **Remote AI**: Any device with internet
+- **Heuristic**: Fallback for all devices
+
+### Chunk Size Guidelines
+- Default: 20 vulnerabilities per chunk
+- Adjust based on:
+  - API rate limits
+  - Model context window
+  - Device memory
+
+### AI Categories (UI)
+Display all AI analysis results under unified "AI Security Analysis" section - let the model categorize internally.
 
 ---
 
 ## Implementation Order
-1. Phase 1 (DataStore) - foundation
-2. Phase 2 (AI Domain) - core logic
-3. Phase 3 (Settings UI) - user configuration
-4. Phase 4 (Integration) - automatic triggering
-5. Phase 5 (Results UI) - visualization
-6. Phase 6 (DI) - wiring
-
-## Notes for VCR
-- On-device heuristic analysis is sufficient for demonstration
-- Remote model integration provides extensibility points
-- Keep UI simple but functional
-- All AI processing runs on background threads (via Coroutines)
+1. Phase 6: Remote AI enhancement (chunking + settings)
+2. Phase 7: AICore integration
+3. Phase 8: Warning UI for unsupported devices
+4. Phase 9: Enhanced prompts

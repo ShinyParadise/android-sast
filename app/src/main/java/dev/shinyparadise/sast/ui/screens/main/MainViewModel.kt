@@ -11,6 +11,7 @@ import dev.shinyparadise.sast.domain.AnalyzerInteractor
 import dev.shinyparadise.sast.domain.ReportGenerator
 import dev.shinyparadise.sast.domain.ReportResult
 import dev.shinyparadise.sast.domain.Vulnerability
+import dev.shinyparadise.sast.domain.VulnerabilityWithAIInsight
 import dev.shinyparadise.sast.ui.screens.details.DetailsItem
 import dev.shinyparadise.sast.ui.screens.details.VulnerabilityCategory
 import dev.shinyparadise.sast.ui.screens.details.groupVulnerabilities
@@ -51,12 +52,14 @@ sealed interface MainUiEvent {
     data class ToggleCategory(val categoryType: String) : MainUiEvent
     data class SetSearchQuery(val query: String) : MainUiEvent
     data object NavigateBack : MainUiEvent
+    data object NavigateToSettings : MainUiEvent
 }
 
 sealed interface MainUiEffect {
     data object OpenFilePicker : MainUiEffect
     data object NavigateToDetails : MainUiEffect
     data object NavigateBack : MainUiEffect
+    data object NavigateToSettings : MainUiEffect
 }
 
 enum class ExportFormat {
@@ -148,6 +151,7 @@ class MainViewModel(
             }.also { recalculateDetailsItems() }
             is MainUiEvent.SetSearchQuery -> _uiState.update { it.copy(searchQuery = event.query) }.also { recalculateDetailsItems() }
             MainUiEvent.NavigateBack -> uiEffects.trySend(MainUiEffect.NavigateBack)
+            MainUiEvent.NavigateToSettings -> uiEffects.trySend(MainUiEffect.NavigateToSettings)
         }
     }
 
@@ -167,6 +171,7 @@ class MainViewModel(
         }.filter { it.count > 0 }
 
         val totalCount = categories.sumOf { it.count }
+        val aiInsightsMap = report.aiInsights?.associateBy { it.originalVulnerability }
 
         val detailsItems = buildList {
             categories.forEach { category ->
@@ -178,7 +183,8 @@ class MainViewModel(
                 ))
                 if (category.type in state.expandedCategories) {
                     category.vulnerabilities.forEach { vuln ->
-                        add(DetailsItem.Vuln(vuln = vuln, color = category.color))
+                        val aiInsight = aiInsightsMap?.get(vuln)
+                        add(DetailsItem.Vuln(vuln = vuln, color = category.color, aiInsight = aiInsight))
                     }
                 }
             }

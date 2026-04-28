@@ -6,11 +6,17 @@ import android.net.Uri
 import android.webkit.MimeTypeMap
 import androidx.core.net.toFile
 import dev.shinyparadise.sast.data.ApkDecompiler
+import dev.shinyparadise.sast.data.SettingsRepository
 import dev.shinyparadise.sast.data.SmaliAnalyzer
+import dev.shinyparadise.sast.domain.AIMode
+import dev.shinyparadise.sast.domain.AppSettings
+import dev.shinyparadise.sast.domain.RemoteAIAnalyzer
+import dev.shinyparadise.sast.domain.VulnerabilityWithAIInsight
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -18,7 +24,28 @@ import java.io.File
 class AnalyzerInteractor(
     private val context: Context,
     private val decompiler: ApkDecompiler,
+    private val settingsRepository: SettingsRepository,
+    private val onDeviceAnalyzer: OnDeviceAIAnalyzer,
 ) {
+
+    private lateinit var currentAnalyzer: VulnerabilityAIAnalyzer
+
+    private fun getOrCreateAnalyzer(settings: AppSettings): VulnerabilityAIAnalyzer {
+        return when (settings.aiAnalysisMode) {
+            AIMode.REMOTE -> {
+                if (settings.remoteModelUrl != null && settings.remoteApiKey != null) {
+                    RemoteAIAnalyzer(
+                        baseUrl = settings.remoteModelUrl,
+                        apiKey = settings.remoteApiKey,
+                        model = settings.selectedRemoteModel ?: "gpt-4o-mini"
+                    )
+                } else {
+                    onDeviceAnalyzer
+                }
+            }
+            AIMode.ON_DEVICE -> onDeviceAnalyzer
+        }
+    }
 
     sealed class AnalysisState {
         object Idle : AnalysisState()
@@ -49,7 +76,17 @@ class AnalyzerInteractor(
             analyzer.analyze()
                 .onCompletion { cause ->
                     if (cause == null) {
-                        val report = generateReport(apkFile, vulnerabilities)
+                        val settings = settingsRepository.settingsFlow.first()
+                        var insights: List<VulnerabilityWithAIInsight>? = null
+
+                        if (settings.aiAnalysisEnabled) {
+                            _analysisState.value = AnalysisState.Analyzing(1.0f) // AI analysis step
+                            currentAnalyzer = getOrCreateAnalyzer(settings)
+                            val result = currentAnalyzer.analyzeVulnerabilities(vulnerabilities)
+                            insights = result.getOrNull()
+                        }
+
+                        val report = generateReport(apkFile, vulnerabilities, insights)
                         _analysisState.value = AnalysisState.Completed(report)
                         cleanup()
                     }
@@ -67,7 +104,11 @@ class AnalyzerInteractor(
         }
     }
 
-    private fun generateReport(apkFile: File, vulnerabilities: List<Vulnerability>): AnalysisReport {
+    private fun generateReport(
+        apkFile: File,
+        vulnerabilities: List<Vulnerability>,
+        aiInsights: List<VulnerabilityWithAIInsight>?,
+    ): AnalysisReport {
         val summary = buildString {
             appendLine("Результаты анализа: ${apkFile.name}")
             appendLine("Всего уязвимостей: ${vulnerabilities.size}")
@@ -76,12 +117,18 @@ class AnalyzerInteractor(
             grouped.forEach { (type, list) ->
                 appendLine("$type: ${list.size}")
             }
+
+            if (aiInsights != null) {
+                appendLine()
+                appendLine("AI анализ: ${aiInsights.size} проанализировано")
+            }
         }
 
         return AnalysisReport(
             apkPath = apkFile.path,
             vulnerabilities = vulnerabilities,
-            summary = summary
+            summary = summary,
+            aiInsights = aiInsights
         )
     }
 

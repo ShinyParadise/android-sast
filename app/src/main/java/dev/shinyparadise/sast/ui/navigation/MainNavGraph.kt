@@ -7,10 +7,13 @@ import androidx.navigation3.ui.NavDisplay
 import dev.shinyparadise.sast.ui.screens.details.DetailsScreen
 import dev.shinyparadise.sast.ui.screens.main.MainScreen
 import dev.shinyparadise.sast.ui.screens.main.MainViewModel
+import dev.shinyparadise.sast.ui.screens.settings.SettingsScreen
+import dev.shinyparadise.sast.ui.screens.settings.SettingsViewModel
 
 @Composable
 fun MainNavGraph(
     viewModel: MainViewModel,
+    settingsViewModel: SettingsViewModel,
     backStack: NavBackStack<Routes>,
 ) {
     NavDisplay(
@@ -23,6 +26,12 @@ fun MainNavGraph(
 
             entry<Routes.Details> {
                 DetailsScreen(viewModel)
+            }
+
+            entry<Routes.Settings> {
+                SettingsScreen(settingsViewModel) {
+                    backStack.removeLastOrNull()
+                }
             }
         }
     )

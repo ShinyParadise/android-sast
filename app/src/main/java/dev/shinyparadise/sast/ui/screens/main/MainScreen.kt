@@ -5,10 +5,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,21 +68,36 @@ private fun MainScreenContent(
             }
         }
     } else {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            uiState.chosenApkName?.let {
-                Text(it)
-                Spacer(Modifier.padding(vertical = 5.dp))
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                uiState.chosenApkName?.let {
+                    Text(it)
+                    Spacer(Modifier.padding(vertical = 8.dp))
+                }
+
+                Button(
+                    onClick = { onEvent(MainUiEvent.OnChooseClicked) },
+                    enabled = !uiState.isLoading,
+                ) {
+                    Text("Choose apk")
+                }
             }
 
-            Button(
-                onClick = { onEvent(MainUiEvent.OnChooseClicked) },
-                enabled = !uiState.isLoading,
+            IconButton(
+                onClick = { onEvent(MainUiEvent.NavigateToSettings) },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(horizontal = 16.dp)
+                    .systemBarsPadding()
             ) {
-                Text("Choose apk")
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = "Settings"
+                )
             }
         }
     }

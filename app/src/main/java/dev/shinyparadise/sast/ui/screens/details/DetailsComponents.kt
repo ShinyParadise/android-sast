@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +45,7 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import dev.shinyparadise.sast.domain.Vulnerability
+import dev.shinyparadise.sast.domain.VulnerabilityWithAIInsight
 import dev.shinyparadise.sast.ui.screens.main.ExportFormat
 import dev.shinyparadise.sast.ui.screens.main.MainUiEvent
 import kotlinx.coroutines.launch
@@ -79,6 +81,7 @@ fun SearchBar(
 @Composable
 fun StatisticsSection(
     categories: List<VulnerabilityCategory>,
+    aiInsights: List<VulnerabilityWithAIInsight>? = null,
     modifier: Modifier = Modifier,
 ) {
     val totalCount = categories.sumOf { it.count }
@@ -90,6 +93,44 @@ fun StatisticsSection(
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = 12.dp)
             )
+
+            if (aiInsights != null) {
+                val highRiskCount = aiInsights.count { (it.aiRiskScore ?: 0f) >= 0.7f }
+                val mediumRiskCount = aiInsights.count { (it.aiRiskScore ?: 0f) >= 0.4f && (it.aiRiskScore ?: 0f) < 0.7f }
+                val lowRiskCount = aiInsights.size - highRiskCount - mediumRiskCount
+
+                Text(
+                    text = "AI Analysis",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    AiRiskCard(
+                        label = "High",
+                        count = highRiskCount,
+                        color = Color(0xFFE53935),
+                        modifier = Modifier.weight(1f)
+                    )
+                    AiRiskCard(
+                        label = "Medium",
+                        count = mediumRiskCount,
+                        color = Color(0xFFFFA726),
+                        modifier = Modifier.weight(1f)
+                    )
+                    AiRiskCard(
+                        label = "Low",
+                        count = lowRiskCount,
+                        color = Color(0xFF4CAF50),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+            }
 
             categories.forEachIndexed { index, category ->
                 Row(
@@ -176,9 +217,65 @@ fun CategoryHeader(
 }
 
 @Composable
+fun AiRiskCard(
+    label: String,
+    count: Int,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.15f))
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "$count",
+                style = MaterialTheme.typography.titleMedium,
+                color = color
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = color
+            )
+        }
+    }
+}
+
+@Composable
+fun AiBadge(
+    riskScore: Float?,
+    severity: String?,
+    modifier: Modifier = Modifier,
+) {
+    val color = when {
+        riskScore == null -> Color.Gray
+        riskScore >= 0.7f -> Color(0xFFE53935)
+        riskScore >= 0.4f -> Color(0xFFFFA726)
+        else -> Color(0xFF4CAF50)
+    }
+
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.15f))
+    ) {
+        Text(
+            text = severity ?: "AI",
+            style = MaterialTheme.typography.labelSmall,
+            color = color,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
+    }
+}
+
+@Composable
 fun VulnerabilityItem(
     item: Vulnerability,
     color: Color = Color.Gray,
+    aiInsight: VulnerabilityWithAIInsight? = null,
     modifier: Modifier = Modifier,
 ) {
     val clipboard = LocalClipboard.current
@@ -201,6 +298,11 @@ fun VulnerabilityItem(
                             appendLine("Line: ${item.line}")
                             item.type?.let { appendLine("Type: $it") }
                             appendLine("Description: ${item.description}")
+                            aiInsight?.let {
+                                appendLine("AI Risk: ${it.aiRiskScore}")
+                                appendLine("AI Severity: ${it.aiSeverity}")
+                                it.aiRecommendation?.let { appendLine("AI Recommendation: $it") }
+                            }
                         }
                         coroutineScope.launch {
                             clipboard.setClipEntry(
@@ -215,16 +317,29 @@ fun VulnerabilityItem(
             Column(
                 modifier = Modifier
                     .width(4.dp)
-                    .height(56.dp)
+                    .height(if (aiInsight != null) 80.dp else 56.dp)
                     .background(color)
             ) { }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = item.file.split("/").last(),
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = item.file.split("/").last(),
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f)
+                    )
+                    aiInsight?.let {
+                        AiBadge(
+                            riskScore = it.aiRiskScore,
+                            severity = it.aiSeverity,
+                        )
+                    }
+                }
                 Text(
                     text = "Line: ${item.line}",
                     style = MaterialTheme.typography.bodySmall,
@@ -236,6 +351,15 @@ fun VulnerabilityItem(
                     modifier = Modifier.padding(top = 4.dp),
                     maxLines = 2
                 )
+                aiInsight?.aiRecommendation?.let { rec ->
+                    Text(
+                        text = rec,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 4.dp),
+                        maxLines = 2
+                    )
+                }
             }
         }
 

@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.shinyparadise.sast.domain.Vulnerability
+import dev.shinyparadise.sast.domain.VulnerabilityWithAIInsight
 import dev.shinyparadise.sast.ui.screens.main.MainUiEvent
 import dev.shinyparadise.sast.ui.screens.main.MainUiState
 import dev.shinyparadise.sast.ui.screens.main.MainViewModel
@@ -41,7 +43,11 @@ sealed class DetailsItem {
         override val key: String get() = "header_${category.type}"
     }
 
-    data class Vuln(val vuln: Vulnerability, val color: Color) : DetailsItem() {
+    data class Vuln(
+        val vuln: Vulnerability,
+        val color: Color,
+        val aiInsight: VulnerabilityWithAIInsight? = null
+    ) : DetailsItem() {
         override val key: String get() = "vuln_${vuln.file}_${vuln.line}"
     }
 }
@@ -98,6 +104,15 @@ private fun DetailsScreenContent(
                             style = MaterialTheme.typography.titleLarge,
                             modifier = Modifier.padding(start = 8.dp)
                         )
+                        IconButton(
+                            onClick = { onEvent(MainUiEvent.NavigateToSettings) },
+                            modifier = Modifier.padding(start = 8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings"
+                            )
+                        }
                     }
                     Text(
                         text = uiState.chosenApkPath ?: report.apkPath,
@@ -115,9 +130,12 @@ private fun DetailsScreenContent(
                 )
             }
 
+            val aiInsights = report.aiInsights
+
             item(key = "statistics") {
                 StatisticsSection(
                     categories = uiState.categories,
+                    aiInsights = aiInsights,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
@@ -148,6 +166,7 @@ private fun DetailsScreenContent(
                         VulnerabilityItem(
                             item = item.vuln,
                             color = item.color,
+                            aiInsight = item.aiInsight,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
                         )
                     }

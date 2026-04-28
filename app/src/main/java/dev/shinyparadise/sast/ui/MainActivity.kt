@@ -26,6 +26,7 @@ import dev.shinyparadise.sast.ui.navigation.Routes
 import dev.shinyparadise.sast.ui.screens.main.MainUiEffect
 import dev.shinyparadise.sast.ui.screens.main.MainUiEvent
 import dev.shinyparadise.sast.ui.screens.main.MainViewModel
+import dev.shinyparadise.sast.ui.screens.settings.SettingsViewModel
 import dev.shinyparadise.sast.ui.theme.SASTTheme
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -44,6 +45,7 @@ private fun <T : NavKey> rememberNavBackStack(vararg elements: T): NavBackStack<
 class MainActivity : ComponentActivity() {
 
     private val viewModel by inject<MainViewModel>()
+    private val settingsViewModel by inject<SettingsViewModel>()
 
     private lateinit var backStack: NavBackStack<Routes>
 
@@ -78,6 +80,7 @@ class MainActivity : ComponentActivity() {
             SASTTheme {
                 MainNavGraph(
                     viewModel = viewModel,
+                    settingsViewModel = settingsViewModel,
                     backStack = backStack,
                 )
             }
@@ -117,6 +120,7 @@ class MainActivity : ComponentActivity() {
             is MainUiEffect.OpenFilePicker -> registerForOpenFileResult.launch(arrayOf("*/*"))
             MainUiEffect.NavigateToDetails -> backStack.add(Routes.Details)
             MainUiEffect.NavigateBack -> backStack.removeLastOrNull()
+            MainUiEffect.NavigateToSettings -> backStack.add(Routes.Settings)
         }
     }
 }
