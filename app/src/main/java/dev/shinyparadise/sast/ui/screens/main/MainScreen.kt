@@ -57,7 +57,14 @@ private fun MainScreenContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                CircularProgressIndicator()
+                if (uiState.loadingProgress > 0) {
+                    LinearProgressIndicator(
+                        progress = { uiState.loadingProgress },
+                        modifier = Modifier.padding(horizontal = 32.dp)
+                    )
+                } else {
+                    CircularProgressIndicator()
+                }
 
                 Text(
                     text = uiState.loadingStage,
@@ -66,10 +73,6 @@ private fun MainScreenContent(
                 )
 
                 if (uiState.loadingProgress > 0) {
-                    LinearProgressIndicator(
-                        progress = { uiState.loadingProgress },
-                        modifier = Modifier.padding(horizontal = 32.dp)
-                    )
                     Text(
                         text = "${(uiState.loadingProgress * 100).toInt()}%",
                         fontSize = 14.sp
