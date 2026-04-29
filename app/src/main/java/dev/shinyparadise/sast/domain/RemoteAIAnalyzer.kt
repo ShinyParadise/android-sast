@@ -50,6 +50,7 @@ class RemoteAIAnalyzer(
     private val baseUrl: String,
     private val apiKey: String,
     private val model: String,
+    private val chunkSize: Int = 20,
 ) : VulnerabilityAIAnalyzer {
     private val gson = Gson()
     private val api: ApiService by lazy {
@@ -69,9 +70,8 @@ class RemoteAIAnalyzer(
             }
 
             val insights = mutableListOf<VulnerabilityWithAIInsight>()
-            val chunkSize = 20
 
-            vulnerabilities.chunked(chunkSize).forEach { chunk ->
+            vulnerabilities.chunked(chunkSize.coerceIn(1, 50)).forEach { chunk ->
                 val prompt = buildSecurityPrompt(chunk)
                 val request = AnalysisRequest(
                     model = model,

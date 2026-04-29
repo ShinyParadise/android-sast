@@ -5,9 +5,9 @@ AI analysis capabilities for SAST Android application with on-device (AICore/Gem
 
 ---
 
-## Current Implementation Status: Phase 6 Complete ✅
+## Current Implementation Status: Phase 7 Complete ✅
 
-Remote AI with chunking, Settings UI, AI insights display all working.
+Remote AI with chunking, Settings UI, AI insights display, and AICore fallback chain all working.
 
 ---
 
@@ -29,26 +29,47 @@ Remote AI with chunking, Settings UI, AI insights display all working.
 
 ---
 
-## Phase 7: AICore (Gemini Nano) Integration
-**Goal**: On-device AI on Pixel 9+ via ML Kit Prompt API.
+## Phase 7: AICore (Gemini Nano) Integration (Complete ✅)
+**Goal**: On-device AI on flagship devices via ML Kit Prompt API.
 
-- [ ] Create `AICoreAnalyzer.kt`:
-  - [ ] ML Kit Prompt API wrapper
-  - [ ] Device capability detection
-  - [ ] Fallback to remote if AICore unavailable
+**Implementation Decision (2026-04-29)**:
+- Use ML Kit Prompt API (`com.google.mlkit:genai-prompt:1.0.0-beta2`) with Gemini Nano
+- Chunking approach: one request per vulnerability (output ≤256 tokens)
+- Fallback chain: AICore → Remote → Heuristics
 
-- [ ] Create `DeviceCapabilities.kt`:
-  - [ ] Check AICore availability
-  - [ ] Detect device model (Pixel 9+, Samsung S24+)
-  - [ ] NPU/GPU availability
+**Constraints**:
+- Output limited to 256 tokens per request
+- Quota enforced per app (implement exponential backoff)
+- Only foreground inference supported
+- Input must be under 4,000 tokens
 
-- [ ] Update `AppModule.kt`:
-  - [ ] AICore analyzer provider
-  - [ ] Fallback chain: AICore → Remote → Heuristic
+**Supported Devices (as of 2026)**:
+- Pixel 7+ (Gemini Nano)
+- Pixel 10+ (Gemini Nano v3)
+- Samsung Galaxy S26 series
+- Other flagship devices with AICore
+
+**Implementation Plan**:
+- [x] Create `AICoreAnalyzer.kt`:
+  - [x] ML Kit Prompt API wrapper (single-vuln-per-request)
+  - [x] Compact JSON output parsing
+  - [x] Fallback to remote/heuristics on failure
+
+- [x] Create `DeviceCapabilities.kt`:
+  - [x] Check AICore availability via ML Kit Prompt API status and `getBaseModelName()`
+  - [x] Device model detection
+  - [x] Memory check (for large vulnerability lists)
+
+- [x] Update `AppModule.kt`:
+  - [x] Smart analyzer selection based on device capabilities
+  - [x] Fallback chain with proper error handling
+
+**Implementation Note**:
+- `minSdk` raised from 24 to 26 because `com.google.mlkit:genai-prompt:1.0.0-beta2` declares API 26 as its minimum.
 
 ---
 
-## Phase 8: Device Warning UI
+## Phase 8: Device Warning UI (Pending after Phase 7)
 **Goal**: Inform users when on-device AI is unavailable.
 
 - [ ] Update `SettingsScreen.kt`:
@@ -98,7 +119,7 @@ Display all AI analysis results under unified "AI Security Analysis" section - l
 ---
 
 ## Implementation Order
-1. Phase 6: Remote AI enhancement (chunking + settings)
-2. Phase 7: AICore integration
-3. Phase 8: Warning UI for unsupported devices
-4. Phase 9: Enhanced prompts
+1. ~~Phase 6: Remote AI enhancement~~ (Complete)
+2. ~~Phase 7: AICore integration~~ (Complete)
+3. **Phase 8: Warning UI for unsupported devices** ← NEXT
+4. ~~Phase 9: Enhanced prompts~~ (Complete)

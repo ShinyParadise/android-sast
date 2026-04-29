@@ -3,6 +3,7 @@ package dev.shinyparadise.sast.di
 import dev.shinyparadise.sast.data.ApkDecompiler
 import dev.shinyparadise.sast.data.SettingsRepository
 import dev.shinyparadise.sast.domain.AnalyzerInteractor
+import dev.shinyparadise.sast.domain.DeviceCapabilities
 import dev.shinyparadise.sast.domain.OnDeviceAIAnalyzer
 import dev.shinyparadise.sast.domain.ReportGenerator
 import dev.shinyparadise.sast.domain.ReportGeneratorImpl
@@ -19,6 +20,7 @@ val appModule = module {
     viewModelOf(::SettingsViewModel)
 
     single { SettingsRepository(androidContext()) }
+    single { DeviceCapabilities(androidContext()) }
 
     single { ReportGeneratorImpl() } bind ReportGenerator::class
 
@@ -26,5 +28,5 @@ val appModule = module {
 
     single { OnDeviceAIAnalyzer() }
 
-    single { AnalyzerInteractor(androidContext(), get(), get(), get()) }
+    single { AnalyzerInteractor(androidContext(), get(), get(), get(), get()) }
 }

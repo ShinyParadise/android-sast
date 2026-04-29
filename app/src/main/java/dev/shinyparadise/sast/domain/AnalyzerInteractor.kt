@@ -8,10 +8,6 @@ import androidx.core.net.toFile
 import dev.shinyparadise.sast.data.ApkDecompiler
 import dev.shinyparadise.sast.data.SettingsRepository
 import dev.shinyparadise.sast.data.SmaliAnalyzer
-import dev.shinyparadise.sast.domain.AIMode
-import dev.shinyparadise.sast.domain.AppSettings
-import dev.shinyparadise.sast.domain.RemoteAIAnalyzer
-import dev.shinyparadise.sast.domain.VulnerabilityWithAIInsight
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,26 +21,37 @@ class AnalyzerInteractor(
     private val context: Context,
     private val decompiler: ApkDecompiler,
     private val settingsRepository: SettingsRepository,
+    private val deviceCapabilities: DeviceCapabilities,
     private val onDeviceAnalyzer: OnDeviceAIAnalyzer,
 ) {
 
     private lateinit var currentAnalyzer: VulnerabilityAIAnalyzer
 
     private fun getOrCreateAnalyzer(settings: AppSettings): VulnerabilityAIAnalyzer {
+        val remoteAnalyzer = createRemoteAnalyzer(settings)
+        val remoteThenHeuristics = FallbackAIAnalyzer(
+            listOfNotNull(remoteAnalyzer, onDeviceAnalyzer)
+        )
+
         return when (settings.aiAnalysisMode) {
-            AIMode.REMOTE -> {
-                if (settings.remoteModelUrl != null && settings.remoteApiKey != null) {
-                    RemoteAIAnalyzer(
-                        baseUrl = settings.remoteModelUrl,
-                        apiKey = settings.remoteApiKey,
-                        model = settings.selectedRemoteModel ?: "gpt-4o-mini"
-                    )
-                } else {
-                    onDeviceAnalyzer
-                }
-            }
-            AIMode.ON_DEVICE -> onDeviceAnalyzer
+            AIMode.REMOTE -> remoteThenHeuristics
+            AIMode.ON_DEVICE -> AICoreAnalyzer(
+                deviceCapabilities = deviceCapabilities,
+                fallbackAnalyzer = remoteThenHeuristics,
+            )
         }
+    }
+
+    private fun createRemoteAnalyzer(settings: AppSettings): VulnerabilityAIAnalyzer? {
+        val url = settings.remoteModelUrl?.takeIf { it.isNotBlank() } ?: return null
+        val apiKey = settings.remoteApiKey?.takeIf { it.isNotBlank() } ?: return null
+
+        return RemoteAIAnalyzer(
+            baseUrl = url,
+            apiKey = apiKey,
+            model = settings.selectedRemoteModel ?: "gpt-4o-mini",
+            chunkSize = settings.aiChunkSize,
+        )
     }
 
     sealed class AnalysisState {

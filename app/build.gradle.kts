@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "dev.shinyparadise.sast"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -88,6 +88,9 @@ dependencies {
 
     // DataStore
     implementation(libs.androidx.datastore.preferences)
+
+    // ML Kit GenAI Prompt API
+    implementation(libs.mlkit.genai.prompt)
 
     // tests
     testImplementation(libs.junit)

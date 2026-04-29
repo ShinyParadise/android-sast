@@ -21,6 +21,7 @@ navigation3Runtime = "1.1.1"
 retrofit = "2.11.0"
 gsonVersion = "2.11.0"
 datastore = "1.1.2"
+mlkitGenaiPrompt = "1.0.0-beta2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -58,6 +59,7 @@ retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = 
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gsonVersion" }
 retrofit-gson-converter = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+mlkit-genai-prompt = { group = "com.google.mlkit", name = "genai-prompt", version.ref = "mlkitGenaiPrompt" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
