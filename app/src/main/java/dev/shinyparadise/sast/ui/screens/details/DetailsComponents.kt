@@ -29,21 +29,18 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.platform.LocalContext
 import dev.shinyparadise.sast.domain.Vulnerability
 import dev.shinyparadise.sast.domain.VulnerabilityWithAIInsight
 import dev.shinyparadise.sast.ui.screens.main.ExportFormat
@@ -63,14 +60,12 @@ fun SearchBar(
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = "Clear",
-                    modifier = Modifier.combinedClickable(
-                        onClick = { onQueryChange("") },
-                        onLongClick = { }
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Clear"
                     )
-                )
+                }
             }
         },
         singleLine = true,
@@ -133,6 +128,8 @@ fun StatisticsSection(
             }
 
             categories.forEachIndexed { index, category ->
+                val percentage = if (totalCount > 0) category.count * 100f / totalCount else 0f
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -153,7 +150,7 @@ fun StatisticsSection(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = "(${String.format("%.1f", category.count * 100f / totalCount)}%)",
+                        text = "(${String.format("%.1f", percentage)}%)",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -178,6 +175,8 @@ fun CategoryHeader(
     onToggleExpand: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val percentage = if (totalCount > 0) category.count * 100f / totalCount else 0f
+
     Card(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
@@ -203,7 +202,7 @@ fun CategoryHeader(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = "${category.count} items (${String.format("%.1f", category.count * 100f / totalCount)}%)",
+                        text = "${category.count} items (${String.format("%.1f", percentage)}%)",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
@@ -276,11 +275,11 @@ fun VulnerabilityItem(
     item: Vulnerability,
     color: Color = Color.Gray,
     aiInsight: VulnerabilityWithAIInsight? = null,
+    onCopied: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val clipboard = LocalClipboard.current
     val coroutineScope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -308,7 +307,7 @@ fun VulnerabilityItem(
                             clipboard.setClipEntry(
                                 androidx.compose.ui.platform.ClipEntry(android.content.ClipData.newPlainText("vulnerability", text))
                             )
-                            snackbarHostState.showSnackbar("Copied to clipboard")
+                            onCopied()
                         }
                     }
                 )
@@ -362,8 +361,6 @@ fun VulnerabilityItem(
                 }
             }
         }
-
-        SnackbarHost(hostState = snackbarHostState)
     }
 }
 

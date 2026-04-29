@@ -1,8 +1,12 @@
 package dev.shinyparadise.sast.ui.screens.details
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,6 +35,7 @@ import dev.shinyparadise.sast.domain.VulnerabilityWithAIInsight
 import dev.shinyparadise.sast.ui.screens.main.MainUiEvent
 import dev.shinyparadise.sast.ui.screens.main.MainUiState
 import dev.shinyparadise.sast.ui.screens.main.MainViewModel
+import kotlinx.coroutines.launch
 
 sealed class DetailsItem {
     abstract val key: String
@@ -67,6 +73,7 @@ private fun DetailsScreenContent(
     onEvent: (MainUiEvent) -> Unit,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(uiState.exportResult) {
         uiState.exportResult?.let { result ->
@@ -81,97 +88,114 @@ private fun DetailsScreenContent(
     }
 
     uiState.report?.let { report ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
         ) {
-            item(key = "header") {
-                Column(
-                    modifier = Modifier
-                        .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 16.dp)
+            ) {
+                item(key = "header") {
+                    Column(
+                        modifier = Modifier
+                            .statusBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
-                        IconButton(onClick = { onEvent(MainUiEvent.NavigateBack) }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            IconButton(onClick = { onEvent(MainUiEvent.NavigateBack) }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Back"
+                                )
+                            }
+                            Text(
+                                text = "Analysis Results",
+                                style = MaterialTheme.typography.titleLarge,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 8.dp)
                             )
+                            IconButton(
+                                onClick = { onEvent(MainUiEvent.NavigateToSettings) },
+                                modifier = Modifier.padding(start = 8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Settings,
+                                    contentDescription = "Settings"
+                                )
+                            }
                         }
                         Text(
-                            text = "Analysis Results",
-                            style = MaterialTheme.typography.titleLarge,
-                            modifier = Modifier.padding(start = 8.dp)
+                            text = uiState.chosenApkPath ?: report.apkPath,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 4.dp)
                         )
-                        IconButton(
-                            onClick = { onEvent(MainUiEvent.NavigateToSettings) },
-                            modifier = Modifier.padding(start = 8.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Settings"
+                    }
+                }
+
+                item(key = "search") {
+                    SearchBar(
+                        query = uiState.searchQuery,
+                        onQueryChange = { onEvent(MainUiEvent.SetSearchQuery(it)) },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+
+                val aiInsights = report.aiInsights
+
+                item(key = "statistics") {
+                    StatisticsSection(
+                        categories = uiState.categories,
+                        aiInsights = aiInsights,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+
+                item(key = "export") {
+                    ExportSection(
+                        onEvent = onEvent,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                }
+
+                items(uiState.detailsItems, key = { it.key }) { item ->
+                    when (item) {
+                        is DetailsItem.CategoryHeader -> {
+                            CategoryHeader(
+                                category = item.category,
+                                totalCount = item.totalCount,
+                                isExpanded = item.isExpanded,
+                                onToggleExpand = item.onToggleExpand,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
+                        }
+                        is DetailsItem.Vuln -> {
+                            VulnerabilityItem(
+                                item = item.vuln,
+                                color = item.color,
+                                aiInsight = item.aiInsight,
+                                onCopied = {
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar("Copied to clipboard")
+                                    }
+                                },
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
                             )
                         }
                     }
-                    Text(
-                        text = uiState.chosenApkPath ?: report.apkPath,
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
                 }
             }
 
-            item(key = "search") {
-                SearchBar(
-                    query = uiState.searchQuery,
-                    onQueryChange = { onEvent(MainUiEvent.SetSearchQuery(it)) },
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-
-            val aiInsights = report.aiInsights
-
-            item(key = "statistics") {
-                StatisticsSection(
-                    categories = uiState.categories,
-                    aiInsights = aiInsights,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                )
-            }
-
-            item(key = "export") {
-                ExportSection(
-                    onEvent = onEvent,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                )
-            }
-
-            item(key = "snackbar") {
-                SnackbarHost(hostState = snackbarHostState)
-            }
-
-            items(uiState.detailsItems, key = { it.key }) { item ->
-                when (item) {
-                    is DetailsItem.CategoryHeader -> {
-                        CategoryHeader(
-                            category = item.category,
-                            totalCount = item.totalCount,
-                            isExpanded = item.isExpanded,
-                            onToggleExpand = item.onToggleExpand,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                        )
-                    }
-                    is DetailsItem.Vuln -> {
-                        VulnerabilityItem(
-                            item = item.vuln,
-                            color = item.color,
-                            aiInsight = item.aiInsight,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
-                        )
-                    }
-                }
-            }
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+            )
         }
     }
 }
