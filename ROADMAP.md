@@ -5,9 +5,9 @@ AI analysis capabilities for SAST Android application with on-device (AICore/Gem
 
 ---
 
-## Current Implementation Status: Phase 7 Complete ✅
+## Current Implementation Status: Phase 10 Initial Implementation Complete ✅
 
-Remote AI with chunking, Settings UI, AI insights display, and AICore fallback chain all working.
+Remote AI with chunking, Settings UI, AI insights display, AICore fallback chain, and initial smali-based AI discovery are implemented.
 
 ---
 
@@ -99,6 +99,39 @@ Remote AI with chunking, Settings UI, AI insights display, and AICore fallback c
 
 ---
 
+## Phase 10: On-device AI Smali Discovery (Initial Implementation Complete ✅)
+**Goal**: Let AI discover new vulnerabilities from smali code slices, not only classify existing rule-based findings.
+
+**Implementation Decision (2026-04-29)**:
+- Use a hybrid SAST pipeline: deterministic smali candidate extraction first, on-device AI reasoning second.
+- Never send whole APK/smali tree to the model. Only analyze small security-relevant method slices.
+- Validate AI output and keep heuristic fallback for unsupported devices or parsing failures.
+
+**Pipeline**:
+1. `SmaliAnalyzer` keeps producing rule-based findings.
+2. `SmaliCandidateExtractor` finds security-relevant smali methods around APIs such as WebView, crypto, storage, networking, reflection, dynamic loading, and process execution.
+3. `AICoreSmaliDiscoverer` analyzes each candidate slice with ML Kit Prompt API when available.
+4. `HeuristicSmaliDiscoverer` provides deterministic fallback findings.
+5. `AnalyzerInteractor` merges and deduplicates discovered findings before AI insight classification.
+
+**Constraints**:
+- Candidate slices must stay below the AICore input limit.
+- One model request should analyze one slice and return at most one compact JSON finding.
+- Findings require validation: known file, positive line, non-empty type/description, confidence threshold.
+- This is best-effort discovery, not a replacement for deterministic SAST/dataflow analysis.
+
+**Implementation Plan**:
+- [x] Add smali slice model and candidate extractor.
+- [x] Add `SmaliVulnerabilityDiscoverer` interface.
+- [x] Add heuristic discoverer fallback.
+- [x] Add AICore discoverer for on-device candidate analysis.
+- [x] Integrate discovery into `AnalyzerInteractor` behind `aiAnalysisEnabled`.
+- [x] Surface AI-discovered findings in existing details UI.
+- [ ] Tune candidate ranking and prompt quality with real APK samples.
+- [ ] Add device-facing warning/copy for experimental AI discovery confidence.
+
+---
+
 ## Notes
 
 ### Supported Devices
@@ -121,5 +154,6 @@ Display all AI analysis results under unified "AI Security Analysis" section - l
 ## Implementation Order
 1. ~~Phase 6: Remote AI enhancement~~ (Complete)
 2. ~~Phase 7: AICore integration~~ (Complete)
-3. **Phase 8: Warning UI for unsupported devices** ← NEXT
-4. ~~Phase 9: Enhanced prompts~~ (Complete)
+3. ~~Phase 10: On-device AI smali discovery~~ (Initial implementation complete)
+4. **Phase 8: Warning UI for unsupported devices**
+5. ~~Phase 9: Enhanced prompts~~ (Complete)

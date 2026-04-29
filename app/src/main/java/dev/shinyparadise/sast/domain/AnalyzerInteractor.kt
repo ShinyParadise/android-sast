@@ -23,6 +23,7 @@ class AnalyzerInteractor(
     private val settingsRepository: SettingsRepository,
     private val deviceCapabilities: DeviceCapabilities,
     private val onDeviceAnalyzer: OnDeviceAIAnalyzer,
+    private val smaliDiscoverer: SmaliVulnerabilityDiscoverer,
 ) {
 
     private lateinit var currentAnalyzer: VulnerabilityAIAnalyzer
@@ -88,6 +89,13 @@ class AnalyzerInteractor(
 
                         if (settings.aiAnalysisEnabled) {
                             _analysisState.value = AnalysisState.Analyzing(1.0f) // AI analysis step
+                            val discovered = smaliDiscoverer.discoverVulnerabilities(decompiledDir)
+                                .getOrElse { emptyList() }
+                            vulnerabilities.addAll(discovered)
+                            val mergedVulnerabilities = deduplicateVulnerabilities(vulnerabilities)
+                            vulnerabilities.clear()
+                            vulnerabilities.addAll(mergedVulnerabilities)
+
                             currentAnalyzer = getOrCreateAnalyzer(settings)
                             val result = currentAnalyzer.analyzeVulnerabilities(vulnerabilities)
                             insights = result.getOrNull()
@@ -141,6 +149,17 @@ class AnalyzerInteractor(
 
     private fun countSmaliFiles(dir: File): Int {
         return dir.walkTopDown().count { it.isFile && it.extension == "smali" }
+    }
+
+    private fun deduplicateVulnerabilities(vulnerabilities: List<Vulnerability>): List<Vulnerability> {
+        return vulnerabilities.distinctBy {
+            listOf(
+                it.file,
+                it.line.toString(),
+                it.type.orEmpty(),
+                it.description.removePrefix("AI-discovered: "),
+            ).joinToString("|")
+        }
     }
 
     fun getUri(uri: Uri): Uri {

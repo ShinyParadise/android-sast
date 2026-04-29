@@ -1,6 +1,6 @@
 package dev.shinyparadise.sast.ui.screens.main
 
-import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.shinyparadise.sast.ui.theme.SASTTheme
+import kotlinx.coroutines.flow.collect
 
 @Composable
 fun MainScreen(viewModel: MainViewModel) {
@@ -41,7 +42,9 @@ private fun MainScreenContent(
     uiState: MainUiState,
     onEvent: (MainUiEvent) -> Unit,
 ) {
-    BackHandler(enabled = uiState.isLoading) {}
+    PredictiveBackHandler(enabled = uiState.isLoading) { progress ->
+        progress.collect()
+    }
 
     if (uiState.isLoading) {
         Box(

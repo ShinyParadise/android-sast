@@ -10,6 +10,12 @@ import dev.shinyparadise.sast.ui.screens.main.MainViewModel
 import dev.shinyparadise.sast.ui.screens.settings.SettingsScreen
 import dev.shinyparadise.sast.ui.screens.settings.SettingsViewModel
 
+fun NavBackStack<Routes>.navigateBack(): Boolean {
+    if (size <= 1) return false
+    removeLastOrNull()
+    return true
+}
+
 @Composable
 fun MainNavGraph(
     viewModel: MainViewModel,
@@ -18,7 +24,7 @@ fun MainNavGraph(
 ) {
     NavDisplay(
         backStack = backStack,
-        onBack = { backStack.removeLastOrNull() },
+        onBack = { backStack.navigateBack() },
         entryProvider = entryProvider {
             entry<Routes.Main> {
                 MainScreen(viewModel)
@@ -30,7 +36,7 @@ fun MainNavGraph(
 
             entry<Routes.Settings> {
                 SettingsScreen(settingsViewModel) {
-                    backStack.removeLastOrNull()
+                    backStack.navigateBack()
                 }
             }
         }

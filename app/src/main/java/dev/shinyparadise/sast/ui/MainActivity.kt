@@ -23,6 +23,7 @@ import androidx.navigation3.runtime.serialization.NavKeySerializer
 import dev.shinyparadise.sast.BuildConfig
 import dev.shinyparadise.sast.ui.navigation.MainNavGraph
 import dev.shinyparadise.sast.ui.navigation.Routes
+import dev.shinyparadise.sast.ui.navigation.navigateBack
 import dev.shinyparadise.sast.ui.screens.main.MainUiEffect
 import dev.shinyparadise.sast.ui.screens.main.MainUiEvent
 import dev.shinyparadise.sast.ui.screens.main.MainViewModel
@@ -119,7 +120,7 @@ class MainActivity : ComponentActivity() {
         when (effect) {
             is MainUiEffect.OpenFilePicker -> registerForOpenFileResult.launch(arrayOf("*/*"))
             MainUiEffect.NavigateToDetails -> backStack.add(Routes.Details)
-            MainUiEffect.NavigateBack -> backStack.removeLastOrNull()
+            MainUiEffect.NavigateBack -> backStack.navigateBack()
             MainUiEffect.NavigateToSettings -> backStack.add(Routes.Settings)
         }
     }
