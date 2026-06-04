@@ -9,6 +9,8 @@ AI analysis capabilities for SAST Android application with on-device (AICore/Gem
 
 Remote AI with chunking, Settings UI, AI insights display, AICore fallback chain, and initial smali-based AI discovery are implemented.
 
+Next focus: harden AI discovery quality, make long-running analysis observable/cancellable, and add tests around deterministic parsing/deduplication.
+
 ---
 
 ## Phase 6: Enhanced Remote AI Analyzer (Complete ✅)
@@ -69,7 +71,7 @@ Remote AI with chunking, Settings UI, AI insights display, AICore fallback chain
 
 ---
 
-## Phase 8: Device Warning UI (Pending after Phase 7)
+## Phase 8: Device Warning UI (Pending)
 **Goal**: Inform users when on-device AI is unavailable.
 
 - [ ] Update `SettingsScreen.kt`:
@@ -132,6 +134,70 @@ Remote AI with chunking, Settings UI, AI insights display, AICore fallback chain
 
 ---
 
+## Phase 11: AI Discovery Hardening (Recommended Next)
+**Goal**: Reduce false positives and make AI-discovered findings explainable.
+
+- [ ] Add explicit `source`/`confidence` metadata to findings instead of encoding `AI-discovered:` in `description`.
+- [ ] Rank `SmaliCodeSlice` candidates before AICore calls using signal severity and method size.
+- [ ] Deduplicate before AI calls, not only after findings are generated.
+- [ ] Add allow/deny rules for noisy generated/package namespaces.
+- [ ] Validate finding lines against the original slice and prefer the exact signal line over method start.
+- [ ] Add structured evidence to reports: signal, matched API, method, and confidence.
+- [ ] Add sample APK/smali fixtures for discovery regression tests.
+
+**Known risks**:
+- Current heuristic TLS detection is intentionally broad and can over-report.
+- `SmaliCandidateExtractor` uses `readLines()` and should be revisited for very large smali files.
+- AICore discovery currently analyzes at most 40 candidates; quality depends heavily on candidate ordering.
+
+---
+
+## Phase 12: Analysis UX and Lifecycle
+**Goal**: Make analysis progress, errors, cancellation, and repeated runs predictable.
+
+- [ ] Split progress states: decompile, rule scan, AI discovery, AI insight classification, report generation.
+- [ ] Add cancel action for analysis and ensure cleanup runs once.
+- [ ] Prevent launching multiple analyses concurrently from repeated file picker results.
+- [ ] Show actionable error state instead of only resetting loading.
+- [ ] Keep previous successful report visible when a new analysis fails.
+- [ ] Add unsupported-device warning for on-device AI and discovery separately.
+
+---
+
+## Phase 13: Reports and Export Quality
+**Goal**: Make exported reports useful for triage.
+
+- [ ] Include AI severity, risk score, recommendation, discovery source, and confidence in TXT/CSV/PDF exports.
+- [ ] Escape CSV fields consistently for file, type, and description.
+- [ ] Add stable report IDs/timestamps and app version metadata.
+- [ ] Improve PDF pagination and line wrapping for long paths/descriptions.
+- [ ] Add export failure details to snackbar/error UI.
+
+---
+
+## Phase 14: Test Coverage and Fixtures
+**Goal**: Lock down deterministic analysis behavior before expanding rules.
+
+- [ ] Unit-test `SmaliAnalyzer` rules with tiny smali fixtures.
+- [ ] Unit-test `SmaliCandidateExtractor` method slicing and signal detection.
+- [ ] Unit-test deduplication in `AnalyzerInteractor` or move it to a pure helper.
+- [ ] Unit-test `RemoteAIAnalyzer` and `AICoreSmaliDiscoverer` JSON parsing with malformed responses.
+- [ ] Add ViewModel tests for loading, success, error, and export result states.
+
+---
+
+## Phase 15: Rule-Based SAST Expansion
+**Goal**: Add high-signal deterministic findings before involving AI.
+
+- [ ] Manifest analysis: exported components, debuggable, cleartext traffic, backup flags.
+- [ ] Network rules: permissive `TrustManager`, permissive `HostnameVerifier`, hardcoded HTTP URLs.
+- [ ] WebView rules: JS bridge, file access, universal access from file URLs.
+- [ ] Crypto rules: ECB mode, hardcoded IV/key, MD5/SHA1, weak random.
+- [ ] Storage rules: sensitive writes to external storage, logs, SharedPreferences without encryption.
+- [ ] Dynamic behavior: `DexClassLoader`, reflection, `Runtime.exec`, native library loading.
+
+---
+
 ## Notes
 
 ### Supported Devices
@@ -149,11 +215,22 @@ Remote AI with chunking, Settings UI, AI insights display, AICore fallback chain
 ### AI Categories (UI)
 Display all AI analysis results under unified "AI Security Analysis" section - let the model categorize internally.
 
+### Current Architecture Notes
+- Rule-based findings are represented by `Vulnerability`.
+- AI enrichment is represented by `VulnerabilityWithAIInsight`.
+- AI discovery currently reuses `Vulnerability` and prefixes descriptions with `AI-discovered:`; Phase 11 should replace this with structured metadata.
+- `AnalyzerInteractor` currently owns orchestration, deduplication, report generation, and cleanup; consider extracting pure helpers before adding more complexity.
+
 ---
 
 ## Implementation Order
 1. ~~Phase 6: Remote AI enhancement~~ (Complete)
 2. ~~Phase 7: AICore integration~~ (Complete)
 3. ~~Phase 10: On-device AI smali discovery~~ (Initial implementation complete)
-4. **Phase 8: Warning UI for unsupported devices**
-5. ~~Phase 9: Enhanced prompts~~ (Complete)
+4. **Phase 11: AI discovery hardening** ← RECOMMENDED NEXT
+5. **Phase 12: Analysis UX and lifecycle**
+6. **Phase 8: Warning UI for unsupported devices**
+7. **Phase 13: Reports and export quality**
+8. **Phase 14: Test coverage and fixtures**
+9. **Phase 15: Rule-based SAST expansion**
+10. ~~Phase 9: Enhanced prompts~~ (Complete)

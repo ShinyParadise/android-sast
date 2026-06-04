@@ -9,3 +9,8 @@
 .cxx
 local.properties
 .kotlin
+
+# Local agent state
+.omo/
+.codex/
+.codex
